@@ -1,15 +1,22 @@
 #!/usr/bin/python
 # Cisco IOS bulk command sender
-# Takes CSV file with IPs, logs into device and gathers MAC address table, without the ones marked with CPU
-# 15th of june 2020
+# Takes CSV file with IPs, logs into device and runs either the CONFIGSET string or the command in quotes.
+# python3 main.py "show version" - Will run show version on all devices
+# python3 main.py - Will run the command set in the CONFIGSET variable
+# Created 15th of June 2020
+# Updated 30th of April 2024
 # Bo Vittus Mortensen
-# Version 1.0
+# Version 1.1
 
 import logging
+import sys
 from netmiko import ConnectHandler
-from netmiko.ssh_exception import AuthenticationException, NetMikoTimeoutException
+from netmiko import NetmikoAuthenticationException, NetMikoTimeoutException
 from datetime import datetime
 from getpass import getpass
+
+# Default command
+CONFIGSET = "show ver | i System serial number"
 
 logger = logging.getLogger('netscript')
 hdlr = logging.FileHandler('status.log')
@@ -34,29 +41,32 @@ def main():
 def runcommand(devicestring):
     device_handler = {'username': my_user, 'password': my_pass, 'ip': devicestring.split(";")[0],
                       'device_type': "cisco_ios"}
-    configset = "show mac address-table | e CPU"
-
     try:
         switch_conn = ConnectHandler(**device_handler)
         logger.debug('Handler connected to ' + device_handler['ip'])
         print("Handler connected")
         hostname = switch_conn.find_prompt().replace("#", "")
-        mac_result = switch_conn.send_command(configset)
+        mac_result = switch_conn.send_command(CONFIGSET)
 
         output = open(device_handler['ip'] + "_" + hostname + ".txt", "w")
         output.write("Hostname : " + hostname + "\n")
         output.write("IP : " + device_handler['ip'] + "\n")
-        output.write(mac_result)
+        output.write(mac_result+"\n")
         output.close()
         switch_conn.cleanup()
     except NetMikoTimeoutException:
         print(device_handler['ip'] + " timed out!")
         logger.debug(device_handler['ip'] + " timed out!")
-    except AuthenticationException:
+    except NetmikoAuthenticationException:
         print('Wrong credentials for ' + device_handler['ip'])
         logger.debug('Wrong credentials for ' + device_handler['ip'])
 
 
 my_user = input("Username: ")
 my_pass = getpass("Password: ")
+
+if len(sys.argv) > 1:
+    CONFIGSET = sys.argv[1]
+
+print(CONFIGSET)
 main()
