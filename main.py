@@ -72,11 +72,10 @@ def runcommand(devicestring):
         logger.debug('Wrong credentials for ' + device_handler['ip'])
 
 
-my_user = input("Username: ")
-my_pass = getpass("Password: ")
+if __name__ == '__main__':
+    my_user = input("Username: ")
+    my_pass = getpass("Password: ")
 
-if len(sys.argv) > 1:
-    CONFIGSET = sys.argv[1]
-
-print(CONFIGSET)
-main()
+    if len(sys.argv) > 1:
+        CONFIGSET = sys.argv[1]
+    main()
