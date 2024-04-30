@@ -56,12 +56,14 @@ def runcommand(devicestring):
         logger.debug('Handler connected to ' + device_handler['ip'])
         print("Handler connected")
         hostname = switch_conn.find_prompt().replace("#", "")
-        mac_result = switch_conn.send_command(CONFIGSET)
+        cmd_result = switch_conn.send_command(CONFIGSET)
 
         output = open(device_handler['ip'] + "_" + hostname + ".txt", "w")
-        output.write("Hostname : " + hostname + "\n")
-        output.write("IP : " + device_handler['ip'] + "\n")
-        output.write(mac_result+"\n")
+        output.write("#" * len(" Hostname : " + hostname + " ")+"\n")
+        output.write(" Hostname : " + hostname + "\n")
+        output.write(" IP : " + device_handler['ip'] + "\n")
+        output.write("#" * len(" Hostname : " + hostname + " ")+"\n")
+        output.write(cmd_result+"\n")
         output.close()
         switch_conn.cleanup()
     except NetMikoTimeoutException:
