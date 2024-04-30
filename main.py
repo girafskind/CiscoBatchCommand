@@ -6,8 +6,9 @@
 # Created 15th of June 2020
 # Updated 30th of April 2024
 # Bo Vittus Mortensen
-# Version 1.1
+# Version 1.3
 
+import threading
 import logging
 import sys
 from netmiko import ConnectHandler
@@ -27,12 +28,21 @@ logger.setLevel(logging.DEBUG)
 
 
 def main():
-    logger.debug('Starting to collect MAC addreses')
+    logger.debug(f'Executing {CONFIGSET} on devicelist')
     start_time = datetime.now()
+    thread_list = list()
 
     with open('devices.csv', 'r') as devices:
         for line in devices:
-            runcommand(line)
+            thread_list.append(threading.Thread(target=runcommand, args=(line,)))
+
+    # Start all threads crated
+    for thread in thread_list:
+        thread.start()
+
+    # Wait for all threads to complete
+    for thread in thread_list:
+        thread.join()
 
     print("\nOperation took: {}".format(datetime.now() - start_time))
     input("\nPress Enter to continue...")
