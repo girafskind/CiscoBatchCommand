@@ -11,13 +11,17 @@ import csv
 import threading
 import logging
 import sys
+import argparse
 from netmiko import ConnectHandler
 from netmiko import NetmikoAuthenticationException, NetMikoTimeoutException
 from datetime import datetime, timedelta
 from getpass import getpass
 
+
+
 # Default command
 CONFIGSET = "show ver | i System serial number"
+MODE = "show"
 
 logger = logging.getLogger('netscript')
 hdlr = logging.FileHandler('status.log')
@@ -28,13 +32,32 @@ logger.setLevel(logging.DEBUG)
 
 
 def main():
-    logger.debug(f'Staring batch configuration')
+    arguments = argparse.ArgumentParser()
+
+    arguments.add_argument("-c", "--config", required=False)
+    arguments.add_argument("-r", "--run", required=False)
+
+    received_args = vars(arguments.parse_args())
+
+    config_snippet = ""
+
+    if received_args['run'] is not None:
+        global CONFIGSET
+        CONFIGSET = received_args['run']
+
+    if received_args['config'] is not None:
+        with open(received_args['config']) as config_file:
+            config_snippet = config_file.read().splitlines()
+            global MODE
+            MODE = "config"
+
+    logger.debug(f'Starting batch configuration')
     start_time = datetime.now()
 
     with open('devices.csv', 'r') as devices:
         csv_data = list(csv.reader(devices, delimiter=';'))
 
-    dict_of_devices = convert_csvdata_to_dict(csv_data)
+    dict_of_devices = convert_csvdata_to_dict(csv_data, config_snippet)
 
     device_commands_list = []
     for key, list_of_commands in dict_of_devices.items():
@@ -50,10 +73,11 @@ def main():
     input("\nPress Enter to continue...")
 
 
-def convert_csvdata_to_dict(csv_data_tobe_converted: list) -> dict:
+def convert_csvdata_to_dict(csv_data_tobe_converted: list, config_snippet_if_set=()) -> dict:
     """
     Convert the list of devices into a dictionary
     :param csv_data_tobe_converted: List with list of devices
+    :param config_snippet_if_set: If MODE is set to 'config' ignore other commands
     :return: Dictionary of devices
     """
     device_dict = {}
@@ -61,10 +85,13 @@ def convert_csvdata_to_dict(csv_data_tobe_converted: list) -> dict:
     for entry in csv_data_tobe_converted:
         device_ip = entry[0]
         commands_for_device = []
-        if len(entry[1]) > 0:
-            commands_for_device.append(entry[1])
+        if MODE == "config":
+            commands_for_device.append(config_snippet_if_set)
         else:
-            commands_for_device.append(CONFIGSET)
+            if len(entry[1]) > 0:
+                commands_for_device.append(entry[1])
+            else:
+                commands_for_device.append(CONFIGSET)
 
         if device_ip in device_dict.keys():
             device_dict[device_ip] += commands_for_device
@@ -87,7 +114,10 @@ def queue_threads(devices_to_queue: list, max_concurrent_threads=100) -> list:
         while len(thread_queue) <= max_concurrent_threads:
             if len(devices_to_queue) > 0:
                 device_from_queue = devices_to_queue.pop(0)
-                thread_queue.append(threading.Thread(target=runcommand, args=(device_from_queue,)))
+                if MODE == "config":
+                    thread_queue.append(threading.Thread(target=run_config_command, args=(device_from_queue,)))
+                else:
+                    thread_queue.append(threading.Thread(target=run_show_command, args=(device_from_queue,)))
             else:
                 break
         thread_queue_list.append(thread_queue)
@@ -113,7 +143,7 @@ def run_threads(thread_queue: list) -> timedelta:
     return duration
 
 
-def runcommand(device_to_configure: str):
+def run_show_command(device_to_configure: str):
     """
     Function for pushing out command to device
     :param device_to_configure: String containing the IP of the device
@@ -133,7 +163,44 @@ def runcommand(device_to_configure: str):
         output.write("#" * len(" Hostname : " + hostname + " ")+"\n")
         output.write(" Hostname : " + hostname + "\n")
         output.write(" IP : " + device_handler['ip'] + "\n")
+        output.write("#" * len(" Hostname : " + hostname + " ")+"\n")
+        output.write(" Timestamp : " + format(datetime.now()) + "\n")
         output.write(" Command : " + command_to_send + "\n")
+        output.write(cmd_result+"\n")
+        output.close()
+        switch_conn.cleanup()
+    except NetMikoTimeoutException:
+        print(device_handler['ip'] + " timed out!")
+        logger.debug(device_handler['ip'] + " timed out!")
+    except NetmikoAuthenticationException:
+        print('Wrong credentials for ' + device_handler['ip'])
+        logger.debug('Wrong credentials for ' + device_handler['ip'])
+
+
+def run_config_command(device_to_configure: str):
+    """
+    Function for pushing out configuration to device
+    :param device_to_configure: String containing the IP of the device
+    :return: Nothing
+    """
+    device_handler = {'username': my_user, 'password': my_pass, 'ip': device_to_configure[0],
+                      'device_type': "cisco_ios"}
+    config_to_send = device_to_configure[1]
+    try:
+        switch_conn = ConnectHandler(**device_handler)
+        logger.debug('Handler connected to ' + device_handler['ip'])
+        print("Handler connected")
+        hostname = switch_conn.find_prompt().replace("#", "")
+        cmd_result = switch_conn.send_config_set(config_to_send)
+
+        output = open(device_handler['ip'] + "_" + hostname + ".txt", "a")
+        output.write("#" * len(" Hostname : " + hostname + " ")+"\n")
+        output.write(" Hostname : " + hostname + "\n")
+        output.write(" IP : " + device_handler['ip'] + "\n")
+        output.write(" Configuration : " + "\n")
+        for line in config_to_send:
+            output.write(line+"\n")
+        output.write("\n")
         output.write("#" * len(" Hostname : " + hostname + " ")+"\n")
         output.write(cmd_result+"\n")
         output.close()
@@ -150,6 +217,4 @@ if __name__ == '__main__':
     my_user = input("Username: ")
     my_pass = getpass("Password: ")
 
-    if len(sys.argv) > 1:
-        CONFIGSET = sys.argv[1]
     main()

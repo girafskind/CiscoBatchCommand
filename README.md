@@ -17,7 +17,11 @@ If you want another command, add it in quotes after _main.py_.
 
 E.g.:
 
-    python3 main.py "show mac addresses"
+    python3 main.py -r "show mac addresses"
+
+If you want to push a configuration snippet to the devices:
+
+    python3 main.py -c config.cfg
 
 ## devices.csv
 The CSV file contains the IP-address of the devices you wish to connect to.
@@ -27,4 +31,5 @@ First value after the IP is for custom commands, if nothing is noted there, the 
 The program will create a logfile, describing which devices that were connection attempts to, and which commands that where sent.
 
 # TO-DO
- - [ ] Creating possibility to push config set
+ - [x] Creating possibility to push config set
+ - [ ] The possibility to define which CSV file to load
