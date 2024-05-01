@@ -69,13 +69,17 @@ def run_threads(thread_queue):
     """
     Start the given thread queue
     :param thread_queue: The thread queue to start
-    :return: True when done
+    :return: Time the whole operation took
     """
+    start_time = datetime.now()
     for queue in thread_queue:
         for thread in queue:
             thread.start()
         for thread in queue:
             thread.join()
+    end_time = datetime.now()
+    duration = end_time - start_time
+    return duration
 
 
 def runcommand(devicestring):
