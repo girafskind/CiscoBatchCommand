@@ -1,0 +1,14 @@
+bcrypt==4.1.2
+cffi==1.16.0
+cryptography==42.0.5
+future==1.0.0
+netmiko==4.3.0
+ntc_templates==5.0.0
+paramiko==3.4.0
+pycparser==2.22
+PyNaCl==1.5.0
+pyserial==3.5
+PyYAML==6.0.1
+scp==0.14.5
+six==1.16.0
+textfsm==1.1.3
