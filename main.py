@@ -5,7 +5,7 @@
 # python3 main.py - Will run the command set in the CONFIGSET variable
 # Created 15th of June 2020
 # Bo Vittus Mortensen
-# Version 1.4
+# Version 1.5
 
 import csv
 import threading
