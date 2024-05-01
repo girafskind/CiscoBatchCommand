@@ -4,10 +4,10 @@
 # python3 main.py "show version" - Will run show version on all devices
 # python3 main.py - Will run the command set in the CONFIGSET variable
 # Created 15th of June 2020
-# Updated 30th of April 2024
 # Bo Vittus Mortensen
-# Version 1.3
+# Version 1.4
 
+import csv
 import threading
 import logging
 import sys
@@ -30,25 +30,60 @@ logger.setLevel(logging.DEBUG)
 def main():
     logger.debug(f'Executing {CONFIGSET} on devicelist')
     start_time = datetime.now()
-    thread_list = list()
 
     with open('devices.csv', 'r') as devices:
-        for line in devices:
-            thread_list.append(threading.Thread(target=runcommand, args=(line,)))
+        data = list(csv.reader(devices, delimiter=';'))
 
-    # Start all threads crated
-    for thread in thread_list:
-        thread.start()
-
-    # Wait for all threads to complete
-    for thread in thread_list:
-        thread.join()
+    # Create queues of threads, divided into lists of 100
+    queues = queue_threads(data)
+    # Run each thread queue at the time
+    run_threads(queues)
 
     print("\nOperation took: {}".format(datetime.now() - start_time))
     input("\nPress Enter to continue...")
 
 
+def queue_threads(devices_to_queue, threads=100):
+    """
+    Queue threads in batches of specific number of threads, default is 100.
+    :param devices_to_queue: The device to be added
+    :param threads: Number of threads to queue
+    :return: List of queues with threads
+    """
+    thread_queue = []
+    thread_queue_list = []
+    while len(devices_to_queue) > 0:
+        while len(thread_queue) <= threads:
+            if len(devices_to_queue) > 0:
+                command = devices_to_queue.pop(0)[0]
+                thread_queue.append(threading.Thread(target=runcommand, args=(command,)))
+            else:
+                break
+        thread_queue_list.append(thread_queue)
+        thread_queue = []
+
+    return thread_queue_list
+
+
+def run_threads(thread_queue):
+    """
+    Start the given thread queue
+    :param thread_queue: The thread queue to start
+    :return: True when done
+    """
+    for queue in thread_queue:
+        for thread in queue:
+            thread.start()
+        for thread in queue:
+            thread.join()
+
+
 def runcommand(devicestring):
+    """
+    Function for pushing out command to device
+    :param devicestring: String containing the IP of the device
+    :return: Nothing
+    """
     device_handler = {'username': my_user, 'password': my_pass, 'ip': devicestring.split(";")[0],
                       'device_type': "cisco_ios"}
     try:
