@@ -37,7 +37,7 @@ def main():
     # Create queues of threads, divided into lists of 100
     queues = queue_threads(data)
     # Run each thread queue at the time
-    run_threads(queues)
+    thread_time = run_threads(queues)
 
     print("\nOperation took: {}".format(datetime.now() - start_time))
     input("\nPress Enter to continue...")
@@ -55,7 +55,7 @@ def queue_threads(devices_to_queue, threads=100):
     while len(devices_to_queue) > 0:
         while len(thread_queue) <= threads:
             if len(devices_to_queue) > 0:
-                command = devices_to_queue.pop(0)[0]
+                command = devices_to_queue.pop(0)
                 thread_queue.append(threading.Thread(target=runcommand, args=(command,)))
             else:
                 break
@@ -88,7 +88,7 @@ def runcommand(devicestring):
     :param devicestring: String containing the IP of the device
     :return: Nothing
     """
-    device_handler = {'username': my_user, 'password': my_pass, 'ip': devicestring.split(";")[0],
+    device_handler = {'username': my_user, 'password': my_pass, 'ip': devicestring[0],
                       'device_type': "cisco_ios"}
     try:
         switch_conn = ConnectHandler(**device_handler)
