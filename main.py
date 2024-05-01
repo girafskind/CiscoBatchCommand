@@ -28,7 +28,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def main():
-    logger.debug(f'Executing {CONFIGSET} on devicelist')
+    logger.debug(f'Staring batch configuration')
     start_time = datetime.now()
 
     with open('devices.csv', 'r') as devices:
@@ -129,10 +129,11 @@ def runcommand(device_to_configure: str):
         hostname = switch_conn.find_prompt().replace("#", "")
         cmd_result = switch_conn.send_command(command_to_send)
 
-        output = open(device_handler['ip'] + "_" + hostname + ".txt", "w")
+        output = open(device_handler['ip'] + "_" + hostname + ".txt", "a")
         output.write("#" * len(" Hostname : " + hostname + " ")+"\n")
         output.write(" Hostname : " + hostname + "\n")
         output.write(" IP : " + device_handler['ip'] + "\n")
+        output.write(" Command : " + command_to_send + "\n")
         output.write("#" * len(" Hostname : " + hostname + " ")+"\n")
         output.write(cmd_result+"\n")
         output.close()

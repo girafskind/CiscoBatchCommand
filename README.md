@@ -21,7 +21,10 @@ E.g.:
 
 ## devices.csv
 The CSV file contains the IP-address of the devices you wish to connect to.
-Values after the IP is current not used, may be used for further development.
+First value after the IP is for custom commands, if nothing is noted there, the default command is used.
 
 ## Logging
 The program will create a logfile, describing which devices that were connection attempts to, and which commands that where sent.
+
+# TO-DO
+ - [ ] Creating possibility to push config set
