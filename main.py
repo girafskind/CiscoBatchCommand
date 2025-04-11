@@ -1,22 +1,23 @@
 #!/usr/bin/python
-# Cisco IOS bulk command sender
-# Takes CSV file with IPs, logs into device and runs either the CONFIGSET string or the command in quotes.
-# python3 main.py "show version" - Will run show version on all devices
-# python3 main.py - Will run the command set in the CONFIGSET variable
-# Created 15th of June 2020
-# Bo Vittus Mortensen
-# Version 1.5
+"""
+Cisco IOS bulk command sender
+Takes CSV file with IPs, logs into device and runs either the CONFIGSET 
+string or the command in quotes.
+python3 main.py "show version" - Will run show version on all devices
+python3 main.py - Will run the command set in the CONFIGSET variable
+Created 15th of June 2020
+Bo Vittus Mortensen
+Version 1.5
+"""
 
 import csv
 import threading
 import logging
-import sys
+from getpass import getpass
 import argparse
+from datetime import datetime, timedelta
 from netmiko import ConnectHandler
 from netmiko import NetmikoAuthenticationException, NetMikoTimeoutException
-from datetime import datetime, timedelta
-from getpass import getpass
-
 
 
 # Default command
@@ -51,7 +52,7 @@ def main():
             global MODE
             MODE = "config"
 
-    logger.debug(f'Starting batch configuration')
+    logger.debug('Starting batch configuration')
     start_time = datetime.now()
 
     with open('devices.csv', 'r') as devices:
@@ -115,9 +116,11 @@ def queue_threads(devices_to_queue: list, max_concurrent_threads=100) -> list:
             if len(devices_to_queue) > 0:
                 device_from_queue = devices_to_queue.pop(0)
                 if MODE == "config":
-                    thread_queue.append(threading.Thread(target=run_config_command, args=(device_from_queue,)))
+                    thread_queue.append(
+                        threading.Thread(target=run_config_command, args=(device_from_queue,)))
                 else:
-                    thread_queue.append(threading.Thread(target=run_show_command, args=(device_from_queue,)))
+                    thread_queue.append(
+                        threading.Thread(target=run_show_command, args=(device_from_queue,)))
             else:
                 break
         thread_queue_list.append(thread_queue)
